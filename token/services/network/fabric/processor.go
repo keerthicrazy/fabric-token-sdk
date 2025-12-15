@@ -76,7 +76,7 @@ func (r *RWSetProcessor) Process(req fabric.Request, tx fabric.ProcessTransactio
 	}
 }
 
-//init when invoked extracts the public params from rwset and updates the local version
+// init when invoked extracts the public params from rwset and updates the local version
 func (r *RWSetProcessor) init(tx fabric.ProcessTransaction, rws *fabric.RWSet, ns string) error {
 	tms := token.GetManagementService(
 		r.sp,
@@ -101,23 +101,31 @@ func (r *RWSetProcessor) init(tx fabric.ProcessTransaction, rws *fabric.RWSet, n
 			logger.Debugf("Parsing write key [%s]", key)
 		}
 		if key == setUpKey {
-            logger.Debugf("setting new public parameters...")
-            err = tms.PublicParametersManager().SetPublicParameters(val)
-            if err != nil {
-                // -----------------------------------------------------------------
-                // PATCH: skip malformed public params instead of failing delivery
-                // -----------------------------------------------------------------
-                logger.Errorf(
-                    "WARNING: skipping malformed public parameters for tx [%s]: %s. "+
-                        "Block will be marked as processed to avoid retry loop.",
-                    tx.ID(),
-                    err,
-                )
-                return nil
-            }
-            logger.Debugf("setting new public parameters...done.")
-            break
-        }
+			logger.Debugf("setting new public parameters...")
+
+			logger.Errorf(
+				"Public parameters metadata: tx=%s size=%d prefix=%q",
+				tx.ID(),
+				len(val),
+				string(val),
+			)
+
+			err = tms.PublicParametersManager().SetPublicParameters(val)
+			if err != nil {
+				// -----------------------------------------------------------------
+				// PATCH: skip malformed public params instead of failing delivery
+				// -----------------------------------------------------------------
+				logger.Errorf(
+					"WARNING: skipping malformed public parameters for tx [%s]: %s. "+
+						"Block will be marked as processed to avoid retry loop.",
+					tx.ID(),
+					err,
+				)
+				return nil
+			}
+			logger.Debugf("setting new public parameters...done.")
+			break
+		}
 	}
 	logger.Debugf("Successfully updated public parameters")
 	return nil
